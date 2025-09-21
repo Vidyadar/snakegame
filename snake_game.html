@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #1a202c;
+            color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        #main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        #game-container {
+            background-color: #2d3748;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-width: 90vw;
+            margin-bottom: 2rem;
+        }
+
+        canvas {
+            background-color: #4a5568;
+            border: 4px solid #48bb78;
+            border-radius: 0.5rem;
+            touch-action: none;
+        }
+
+        .controls-container {
+            margin-top: 1.5rem;
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left . right"
+                ". down .";
+            gap: 1rem;
+        }
+        
+        .control-button {
+            background-color: #48bb78;
+            color: #1a202c;
+            font-family: 'Press Start 2P', cursive;
+            padding: 1.25rem;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-button:active {
+            transform: scale(0.9);
+        }
+
+        #up-button { grid-area: up; }
+        #down-button { grid-area: down; }
+        #left-button { grid-area: left; }
+        #right-button { grid-area: right; }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .game-info span {
+            font-size: 1rem;
+        }
+
+        .message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(45, 55, 72, 0.95);
+            border: 2px solid #48bb78;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .message-box p {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .message-box button {
+            background-color: #48bb78;
+            color: #1a202c;
+            font-family: 'Press Start 2P', cursive;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: transform 0.2s;
+        }
+
+        #leaderboard-container {
+            background-color: #2d3748;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            width: 100%;
+        }
+
+        #leaderboard-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #4a5568;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #leaderboard-list li:last-child {
+            border-bottom: none;
+        }
+
+        .nft-mint-button {
+            background-color: #6ee7b7;
+            color: #1f2937;
+            font-weight: bold;
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .nft-mint-button:disabled {
+            background-color: #4a5568;
+            color: #a0aec0;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+<div id="main-container" class="lg:flex lg:flex-row lg:items-start lg:gap-8">
+    <!-- Game Section -->
+    <div id="game-container" class="lg:w-1/2">
+        <h1 class="text-3xl font-extrabold mb-4">SNAKE</h1>
+        <div class="game-info mb-4">
+            <span>Score: <span id="score">0</span></span>
+            <span>High Score: <span id="high-score">0</span></span>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div class="controls-container w-full max-w-xs mx-auto md:hidden">
+            <button id="up-button" class="control-button">▲</button>
+            <button id="left-button" class="control-button">◀</button>
+            <button id="right-button" class="control-button">▶</button>
+            <button id="down-button" class="control-button">▼</button>
+        </div>
+        <div class="mt-4">
+            <p class="text-sm">Your User ID:</p>
+            <p id="user-id" class="text-xs break-all text-gray-400"></p>
+        </div>
+    </div>
+
+    <!-- Leaderboard Section -->
+    <div id="leaderboard-container" class="mt-8 lg:mt-0 lg:w-1/2">
+        <h2 class="text-2xl font-extrabold mb-4">LEADERBOARD</h2>
+        <ol id="leaderboard-list" class="list-decimal text-left pl-6"></ol>
+    </div>
+</div>
+
+<div id="message-overlay" class="hidden absolute w-full h-full inset-0 bg-gray-900 bg-opacity-75 z-20">
+    <div class="message-box w-11/12 max-w-sm">
+        <p id="message-text"></p>
+        <div id="game-over-buttons" class="mt-4">
+            <button id="restart-button" class="cta-button">Play Again</button>
+            <button id="mint-nft-button" class="nft-mint-button mt-4 hidden">Mint Your Score NFT</button>
+        </div>
+    </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Global variables from the environment
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    let userId = null;
+
+    // UI Elements
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('score');
+    const highScoreDisplay = document.getElementById('high-score');
+    const messageOverlay = document.getElementById('message-overlay');
+    const messageText = document.getElementById('message-text');
+    const restartButton = document.getElementById('restart-button');
+    const mintNftButton = document.getElementById('mint-nft-button');
+    const userIdDisplay = document.getElementById('user-id');
+    const leaderboardList = document.getElementById('leaderboard-list');
+    
+    // Control buttons for mobile
+    const upButton = document.getElementById('up-button');
+    const downButton = document.getElementById('down-button');
+    const leftButton = document.getElementById('left-button');
+    const rightButton = document.getElementById('right-button');
+
+    const gridSize = 20;
+    const canvasSize = 400;
+
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+
+    let snake, food, score, direction, lastDirection, isGameOver, gameSpeed, highscore;
+
+    // Game Functions
+    const init = () => {
+        snake = [{x: 10, y: 10}];
+        direction = 'right';
+        lastDirection = 'right';
+        score = 0;
+        gameSpeed = 150;
+        isGameOver = false;
+        createFood();
+        updateScore();
+        messageOverlay.classList.add('hidden');
+        mintNftButton.classList.add('hidden');
+        gameLoop();
+    };
+
+    const createFood = () => {
+        food = {
+            x: Math.floor(Math.random() * (canvasSize / gridSize)),
+            y: Math.floor(Math.random() * (canvasSize / gridSize))
+        };
+    };
+
+    const draw = () => {
+        // Clear canvas
+        ctx.fillStyle = '#4a5568';
+        ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+        // Draw food
+        ctx.fillStyle = '#f6e05e';
+        ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+
+        // Draw snake
+        ctx.fillStyle = '#48bb78';
+        snake.forEach((segment, index) => {
+            if (index === 0) {
+                ctx.fillStyle = '#38a169'; // Head color
+            } else {
+                ctx.fillStyle = '#48bb78'; // Body color
+            }
+            ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+        });
+    };
+
+    const update = () => {
+        if (isGameOver) return;
+
+        const head = { x: snake[0].x, y: snake[0].y };
+
+        switch (direction) {
+            case 'up': head.y--; break;
+            case 'down': head.y++; break;
+            case 'left': head.x--; break;
+            case 'right': head.x++; break;
+        }
+
+        // Check for collision with walls
+        if (head.x < 0 || head.x >= (canvasSize / gridSize) || head.y < 0 || head.y >= (canvasSize / gridSize)) {
+            gameOver();
+            return;
+        }
+
+        // Check for collision with self
+        for (let i = 1; i < snake.length; i++) {
+            if (head.x === snake[i].x && head.y === snake[i].y) {
+                gameOver();
+                return;
+            }
+        }
+
+        snake.unshift(head);
+
+        // Check if food is eaten
+        if (head.x === food.x && head.y === food.y) {
+            score++;
+            updateScore();
+            createFood();
+            gameSpeed = Math.max(50, gameSpeed - 5); // Increase speed
+        } else {
+            snake.pop();
+        }
+
+        lastDirection = direction;
+        draw();
+    };
+
+    const updateScore = () => {
+        scoreDisplay.textContent = score;
+    };
+
+    const gameOver = () => {
+        isGameOver = true;
+        messageText.textContent = `Game Over! Your Score: ${score}`;
+        messageOverlay.classList.remove('hidden');
+        
+        // Save the score if it's a high score
+        if (userId) {
+            saveScoreToLeaderboard(score);
+        }
+
+        // Show mint NFT button
+        if (score > 0) {
+            mintNftButton.classList.remove('hidden');
+        }
+    };
+
+    const gameLoop = () => {
+        if (!isGameOver) {
+            update();
+            setTimeout(gameLoop, gameSpeed);
+        }
+    };
+
+    const mintNFT = () => {
+        mintNftButton.disabled = true;
+        mintNftButton.textContent = 'Minting...';
+        messageText.textContent = `Minting your score of ${score} as an NFT...`;
+
+        // Simulate a blockchain transaction
+        setTimeout(() => {
+            messageText.textContent = `Congratulations! Your score card NFT has been minted.`;
+            mintNftButton.textContent = 'Minted!';
+            mintNftButton.classList.add('bg-gray-500');
+        }, 3000);
+    };
+
+    // Firebase Functions
+    const saveScoreToLeaderboard = async (newScore) => {
+        const leaderboardRef = collection(db, `artifacts/${appId}/public/data/leaderboard`);
+        const q = query(leaderboardRef, where("userId", "==", userId));
+        
+        try {
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                // User already has an entry, update if score is higher
+                const docRef = doc(db, `artifacts/${appId}/public/data/leaderboard`, querySnapshot.docs[0].id);
+                const existingScore = querySnapshot.docs[0].data().score;
+                if (newScore > existingScore) {
+                    await updateDoc(docRef, { score: newScore, timestamp: new Date() });
+                }
+            } else {
+                // First entry for this user
+                await addDoc(leaderboardRef, {
+                    userId: userId,
+                    score: newScore,
+                    timestamp: new Date()
+                });
+            }
+        } catch (e) {
+            console.error("Error saving score: ", e);
+        }
+    };
+
+    const listenForLeaderboardUpdates = () => {
+        const leaderboardRef = collection(db, `artifacts/${appId}/public/data/leaderboard`);
+        const q = query(leaderboardRef, orderBy("score", "desc"));
+
+        onSnapshot(q, (snapshot) => {
+            const scores = [];
+            snapshot.forEach((doc) => {
+                scores.push(doc.data());
+            });
+
+            leaderboardList.innerHTML = '';
+            scores.slice(0, 10).forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = item.userId === userId ? 'font-bold text-green-400' : '';
+                const displayUserId = item.userId.substring(0, 8) + '...';
+                li.innerHTML = `<span>${index + 1}. ${displayUserId}</span><span>${item.score}</span>`;
+                leaderboardList.appendChild(li);
+            });
+        });
+    };
+
+    // Event Listeners
+    document.addEventListener('keydown', (e) => {
+        const key = e.key;
+        if ((key === 'ArrowUp' || key === 'w') && lastDirection !== 'down') direction = 'up';
+        if ((key === 'ArrowDown' || key === 's') && lastDirection !== 'up') direction = 'down';
+        if ((key === 'ArrowLeft' || key === 'a') && lastDirection !== 'right') direction = 'left';
+        if ((key === 'ArrowRight' || key === 'd') && lastDirection !== 'left') direction = 'right';
+    });
+
+    upButton.addEventListener('click', () => {
+        if (lastDirection !== 'down') direction = 'up';
+    });
+    downButton.addEventListener('click', () => {
+        if (lastDirection !== 'up') direction = 'down';
+    });
+    leftButton.addEventListener('click', () => {
+        if (lastDirection !== 'right') direction = 'left';
+    });
+    rightButton.addEventListener('click', () => {
+        if (lastDirection !== 'left') direction = 'right';
+    });
+
+    restartButton.addEventListener('click', () => {
+        init();
+    });
+
+    mintNftButton.addEventListener('click', () => {
+        mintNFT();
+    });
+
+    // Handle authentication and start app
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            userId = user.uid;
+        } else {
+            // Sign in anonymously if no auth token is provided
+            try {
+                await signInAnonymously(auth);
+            } catch (error) {
+                console.error("Error signing in anonymously:", error);
+            }
+        }
+        userIdDisplay.textContent = userId;
+        listenForLeaderboardUpdates();
+        init();
+    });
+</script>
+
+</body>
+</html>
